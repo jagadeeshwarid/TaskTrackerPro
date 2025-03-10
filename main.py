@@ -32,6 +32,13 @@ st.markdown("""
     .stHeader {
         background-color: rgba(37, 150, 190, 0.1);
     }
+    .stTab {
+        color: #2596be;
+    }
+    div[data-baseweb="tab-list"] {
+        background-color: rgba(37, 150, 190, 0.1);
+        border-radius: 5px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -44,6 +51,8 @@ if 'username' not in st.session_state:
     st.session_state.username = None
 if 'show_reset' not in st.session_state:
     st.session_state.show_reset = False
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = "Login"
 
 # Initialize database
 initialize_database()
@@ -71,24 +80,18 @@ def reset_password_form():
             else:
                 st.error("Current password is incorrect!")
 
-def login():
-    st.title("Employee Management System")
-
-    # Create three columns for centered login form
-    _, col2, _ = st.columns([1, 2, 1])
-
-    with col2:
-        with st.form("login_form"):
-            st.subheader("Login")
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            col1, col2 = st.columns(2)
-            with col1:
-                submitted = st.form_submit_button("Login")
-            with col2:
-                if st.form_submit_button("Reset Admin Password"):
-                    st.session_state.show_reset = True
-                    st.rerun()
+def login_form():
+    with st.form("login_form"):
+        st.subheader("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        col1, col2 = st.columns(2)
+        with col1:
+            submitted = st.form_submit_button("Login")
+        with col2:
+            if st.form_submit_button("Reset Admin Password"):
+                st.session_state.show_reset = True
+                st.rerun()
 
         if submitted:
             try:
@@ -104,15 +107,55 @@ def login():
             except Exception as e:
                 st.error(f"An error occurred during login. Please try again.")
 
+def register_form():
+    with st.form("register_form"):
+        st.subheader("Employee Registration")
+        new_username = st.text_input("Choose Username")
+        new_password = st.text_input("Choose Password", type="password")
+        confirm_password = st.text_input("Confirm Password", type="password")
+        submitted = st.form_submit_button("Register")
+
+        if submitted:
+            if not new_username or not new_password:
+                st.error("Please fill all fields")
+                return
+            if new_password != confirm_password:
+                st.error("Passwords don't match!")
+                return
+            if len(new_password) < 6:
+                st.error("Password must be at least 6 characters long")
+                return
+
+            success, message = create_user(new_username, new_password, "employee")
+            if success:
+                st.success("Registration successful! Please login with your credentials.")
+                st.session_state.active_tab = "Login"
+                st.rerun()
+            else:
+                st.error(message)
+
 def main():
     if not st.session_state.authenticated:
+        st.title("Employee Management System")
+
         if st.session_state.show_reset:
             reset_password_form()
             if st.button("Back to Login"):
                 st.session_state.show_reset = False
                 st.rerun()
         else:
-            login()
+            # Create three columns for centered content
+            _, center_col, _ = st.columns([1, 2, 1])
+
+            with center_col:
+                # Create tabs for login and registration
+                tab1, tab2 = st.tabs(["Login", "Register"])
+
+                with tab1:
+                    login_form()
+
+                with tab2:
+                    register_form()
     else:
         st.sidebar.title(f"Welcome, {st.session_state.username}")
         if st.sidebar.button("Logout", key="logout"):
