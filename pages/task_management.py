@@ -5,7 +5,7 @@ import uuid
 
 def load_task_management():
     st.title("Task Management")
-    
+
     # Load data
     tasks_df = pd.read_csv("data/tasks.csv")
     users_df = pd.read_csv("data/users.csv")
@@ -19,9 +19,9 @@ def load_task_management():
         assigned_to = st.selectbox("Assign To", employees)
         deadline = st.date_input("Deadline")
         severity = st.select_slider("Severity", options=["Low", "Medium", "High"])
-        
+
         submitted = st.form_submit_button("Create Task")
-        
+
         if submitted:
             if title and description and assigned_to:
                 new_task = pd.DataFrame({
@@ -35,11 +35,11 @@ def load_task_management():
                     'created_by': [st.session_state.username],
                     'approved': [True if st.session_state.user_role == 'admin' else False]
                 })
-                
+
                 tasks_df = pd.concat([tasks_df, new_task], ignore_index=True)
                 tasks_df.to_csv("data/tasks.csv", index=False)
                 st.success("Task created successfully!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Please fill all required fields")
 
@@ -62,13 +62,13 @@ def load_task_management():
                 st.write(f"Severity: {task['severity']}")
                 st.write(f"Status: {task['status']}")
                 st.write(f"Created by: {task['created_by']}")
-                
+
                 if st.session_state.user_role == 'admin':
                     if st.button(f"Delete Task #{task['task_id']}"):
                         tasks_df = tasks_df[tasks_df['task_id'] != task['task_id']]
                         tasks_df.to_csv("data/tasks.csv", index=False)
                         st.success("Task deleted!")
-                        st.experimental_rerun()
+                        st.rerun()
 
 if __name__ == "__main__":
     if st.session_state.get('authenticated'):

@@ -5,7 +5,7 @@ from datetime import datetime
 
 def load_employee_dashboard():
     username = st.session_state.username
-    
+
     # Load data
     tasks_df = pd.read_csv("data/tasks.csv")
     leaves_df = pd.read_csv("data/leaves.csv")
@@ -26,12 +26,13 @@ def load_employee_dashboard():
             status_counts = user_tasks['status'].value_counts()
             fig = px.pie(values=status_counts.values, 
                         names=status_counts.index, 
-                        title="My Task Status")
+                        title="My Task Status",
+                        color_discrete_sequence=px.colors.sequential.Blues)
             st.plotly_chart(fig)
 
         # Task list with status update
         for _, task in user_tasks.iterrows():
-            with st.expander(f"Task: {task['title']}"):
+            with st.expander(f"Task: {task['title']}", expanded=False):
                 st.write(f"Description: {task['description']}")
                 st.write(f"Deadline: {task['deadline']}")
                 st.write(f"Severity: {task['severity']}")
@@ -45,13 +46,13 @@ def load_employee_dashboard():
                     tasks_df.loc[tasks_df['task_id'] == task['task_id'], 'status'] = new_status
                     tasks_df.to_csv("data/tasks.csv", index=False)
                     st.success("Status updated!")
-                    st.experimental_rerun()
+                    st.rerun()
 
     with col2:
         st.subheader("My Leave Requests")
         if not user_leaves.empty:
             for _, leave in user_leaves.iterrows():
-                with st.expander(f"Leave Request ({leave['start_date']} to {leave['end_date']})"):
+                with st.expander(f"Leave Request ({leave['start_date']} to {leave['end_date']})", expanded=False):
                     st.write(f"Type: {leave['leave_type']}")
                     st.write(f"Status: {leave['status']}")
                     st.write(f"Reason: {leave['reason']}")
@@ -62,8 +63,14 @@ def load_employee_dashboard():
             fig = px.line(daily_hours, 
                          x='date', 
                          y='hours_worked',
-                         title="Daily Hours Worked")
+                         title="Daily Hours Worked",
+                         color_discrete_sequence=['#2596be'])
             st.plotly_chart(fig)
+
+            # Weekly summary
+            st.subheader("Weekly Summary")
+            total_hours = user_timesheets['hours_worked'].sum()
+            st.metric("Total Hours Logged", f"{total_hours:.1f}")
 
 if __name__ == "__main__":
     if st.session_state.get('authenticated'):

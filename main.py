@@ -18,9 +18,18 @@ st.markdown("""
         color: white;
         border-radius: 5px;
         padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #1a7da1;
+        transform: translateY(-2px);
     }
     .stTextInput>div>div>input {
         border-radius: 5px;
+        border: 2px solid #e0e0e0;
+    }
+    .stTextInput>div>div>input:focus {
+        border-color: #2596be;
     }
     .main {
         background-color: #0b0039;
@@ -28,16 +37,41 @@ st.markdown("""
     }
     .stTitle {
         color: #2596be !important;
+        font-size: 2.5rem !important;
+        text-align: center;
+        margin-bottom: 2rem !important;
     }
     .stHeader {
         background-color: rgba(37, 150, 190, 0.1);
+        padding: 1rem;
+        border-radius: 10px;
     }
     .stTab {
         color: #2596be;
+        font-weight: 500;
     }
     div[data-baseweb="tab-list"] {
         background-color: rgba(37, 150, 190, 0.1);
-        border-radius: 5px;
+        border-radius: 10px;
+        padding: 0.5rem;
+    }
+    .stSidebar {
+        background-color: #0b0039;
+        padding: 2rem 1rem;
+    }
+    .stSidebar [data-testid="stSidebarNav"] {
+        background-color: #0b0039;
+    }
+    .stForm {
+        background-color: rgba(37, 150, 190, 0.05);
+        padding: 2rem;
+        border-radius: 10px;
+        border: 1px solid rgba(37, 150, 190, 0.2);
+    }
+    .stExpander {
+        border: 1px solid rgba(37, 150, 190, 0.2);
+        border-radius: 10px;
+        margin-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,7 +93,7 @@ initialize_database()
 
 def reset_password_form():
     st.subheader("Reset Admin Password")
-    with st.form("reset_form"):
+    with st.form("reset_form", clear_on_submit=True):
         current_password = st.text_input("Current Password", type="password")
         new_password = st.text_input("New Password", type="password")
         confirm_password = st.text_input("Confirm New Password", type="password")
@@ -81,7 +115,7 @@ def reset_password_form():
                 st.error("Current password is incorrect!")
 
 def login_form():
-    with st.form("login_form"):
+    with st.form("login_form", clear_on_submit=True):
         st.subheader("Login")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -108,7 +142,7 @@ def login_form():
                 st.error(f"An error occurred during login. Please try again.")
 
 def register_form():
-    with st.form("register_form"):
+    with st.form("register_form", clear_on_submit=True):
         st.subheader("Employee Registration")
         new_username = st.text_input("Choose Username")
         new_password = st.text_input("Choose Password", type="password")
