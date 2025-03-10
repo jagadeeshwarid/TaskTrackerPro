@@ -1,0 +1,5 @@
+task_id,title,description,assigned_to,deadline,severity,status,created_by,approved
+1a2b3c,Website Redesign,Implement new company website design,john_doe,2024-02-28,High,In Progress,admin,True
+2c3d4e,Content Creation,Create blog posts for February,jane_smith,2024-02-15,Medium,Not Started,admin,True
+3e4f5g,Bug Fixes,Fix reported issues in mobile app,mike_wilson,2024-02-10,High,Completed,admin,True
+4g5h6i,Documentation,Update API documentation,john_doe,2024-02-20,Low,Not Started,jane_smith,False
