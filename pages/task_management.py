@@ -10,13 +10,60 @@ def load_task_management():
     tasks_df = pd.read_csv("data/tasks.csv")
     users_df = pd.read_csv("data/users.csv")
     employees = users_df[users_df['role'] == 'employee']['username'].tolist()
+    admins = users_df[users_df['role'] == 'admin']['username'].tolist()
+
+    # Task list
+    st.subheader("Task List")
+    if st.session_state.user_role == 'admin':
+        tasks_view = tasks_df
+    else:
+        tasks_view = tasks_df[
+            (tasks_df['assigned_to'] == st.session_state.username) |
+            (tasks_df['created_by'] == st.session_state.username)
+        ]
+
+    if not tasks_view.empty:
+        for _, task in tasks_view.iterrows():
+            with st.expander(f"Task: {task['title']}"):
+                st.write(f"**Task Title:** {task['title']}")
+                st.write(f"**Description:** {task['description']}")
+                st.write(f"**Assigned to:** {task['assigned_to']}")
+                st.write(f"**Deadline:** {task['deadline']}")
+                st.write(f"**Severity:** {task['severity']}")
+
+                # Status selection
+                status_options = ["Not Started", "In Progress", "Completed"]
+                current_status = task['status']
+                selected_status = st.selectbox(f"Status of Task #{task['task_id']}", options=status_options, index=status_options.index(current_status))
+
+                if st.button(f"Update Status of Task #{task['task_id']}"):
+                    tasks_df.loc[tasks_df['task_id'] == task['task_id'], 'status'] = selected_status
+                    tasks_df.to_csv("data/tasks.csv", index=False)
+                    st.success("Task status updated!")
+                    st.rerun()
+
+                st.write(f"**Current Status:** {selected_status}")
+                st.write(f"**Created by:** {task['created_by']}")
+
+                if st.session_state.user_role == 'admin':
+                    if st.button(f"Delete Task #{task['task_id']}"):
+                        tasks_df = tasks_df[tasks_df['task_id'] != task['task_id']]
+                        tasks_df.to_csv("data/tasks.csv", index=False)
+                        st.success("Task deleted!")
+                        st.rerun()
 
     # Task creation form
+    st.subheader("Create New Task")
     with st.form("task_form"):
-        st.subheader("Create New Task")
         title = st.text_input("Task Title")
         description = st.text_area("Task Description")
-        assigned_to = st.selectbox("Assign To", employees)
+
+        # Conditional logic for "Assign To" selectbox
+        if st.session_state.user_role == 'admin':
+            assigned_to = st.selectbox("Assign To", employees)
+        else:
+            assigned_to = st.selectbox("Assign To", [st.session_state.username])
+
         deadline = st.date_input("Deadline")
         severity = st.select_slider("Severity", options=["Low", "Medium", "High"])
 
@@ -42,33 +89,6 @@ def load_task_management():
                 st.rerun()
             else:
                 st.error("Please fill all required fields")
-
-    # Task list
-    st.subheader("Task List")
-    if st.session_state.user_role == 'admin':
-        tasks_view = tasks_df
-    else:
-        tasks_view = tasks_df[
-            (tasks_df['assigned_to'] == st.session_state.username) |
-            (tasks_df['created_by'] == st.session_state.username)
-        ]
-
-    if not tasks_view.empty:
-        for _, task in tasks_view.iterrows():
-            with st.expander(f"Task: {task['title']}"):
-                st.write(f"Description: {task['description']}")
-                st.write(f"Assigned to: {task['assigned_to']}")
-                st.write(f"Deadline: {task['deadline']}")
-                st.write(f"Severity: {task['severity']}")
-                st.write(f"Status: {task['status']}")
-                st.write(f"Created by: {task['created_by']}")
-
-                if st.session_state.user_role == 'admin':
-                    if st.button(f"Delete Task #{task['task_id']}"):
-                        tasks_df = tasks_df[tasks_df['task_id'] != task['task_id']]
-                        tasks_df.to_csv("data/tasks.csv", index=False)
-                        st.success("Task deleted!")
-                        st.rerun()
 
 if __name__ == "__main__":
     if st.session_state.get('authenticated'):
