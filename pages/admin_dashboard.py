@@ -11,6 +11,7 @@ def load_admin_dashboard():
     leaves_df = pd.read_csv("data/leaves.csv")
     timesheets_df = pd.read_csv("data/timesheets.csv")
     users_df = pd.read_csv("data/users.csv")
+    print(" Hello ")
 
     # Sidebar navigation
     st.sidebar.header("Admin Controls")
