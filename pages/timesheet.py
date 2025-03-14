@@ -1,68 +1,111 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import uuid
+import os
 
-def load_timesheet():
-    st.title("Timesheet Management")
-    
-    # Load data
-    timesheets_df = pd.read_csv("data/timesheets.csv")
-    tasks_df = pd.read_csv("data/tasks.csv")
+# File path
+TIMESHEET_FILE = "data/timesheets.csv"
+TASKS_FILE = "data/tasks.csv"
 
-    # Get user's tasks for the dropdown
-    user_tasks = tasks_df[tasks_df['assigned_to'] == st.session_state.username]
+# Ensure the directory exists
+os.makedirs("data", exist_ok=True)
+
+# Load or create timesheet file
+def load_timesheet_data():
+    if not os.path.exists(TIMESHEET_FILE):
+        return pd.DataFrame(columns=["timesheet_id", "employee", "date", "login_time", "logout_time", "tasks", "task_notes", "hours_worked"])
+    return pd.read_csv(TIMESHEET_FILE)
+
+# Save timesheet data
+def save_timesheet_data(df):
+    df.to_csv(TIMESHEET_FILE, index=False)
+
+# Load tasks
+def load_tasks():
+    if not os.path.exists(TASKS_FILE):
+        return pd.DataFrame(columns=["task_id", "title", "assigned_to"])
+    return pd.read_csv(TASKS_FILE)
+
+# Main function
+def timesheet_app():
+    st.title("Employee Timesheet Tracker")
     
-    # Timesheet entry form
-    with st.form("timesheet_form"):
-        st.subheader("Log Time")
-        date = st.date_input("Date")
-        hours_worked = st.number_input("Hours Worked", min_value=0.0, max_value=24.0, step=0.5)
-        task_id = st.selectbox("Related Task", 
-                              options=user_tasks['task_id'].tolist(),
-                              format_func=lambda x: user_tasks[user_tasks['task_id']==x]['title'].iloc[0])
-        description = st.text_area("Work Description")
+    if "username" not in st.session_state:
+        st.error("Please login first!")
+        return
+    
+    username = st.session_state.username
+    today_date = datetime.today().strftime("%Y-%m-%d")
+    timesheet_df = load_timesheet_data()
+    tasks_df = load_tasks()
+    
+    # Generate timesheet ID
+    timesheet_id = f"{username}_Proitbridge"
+    
+    # Filter tasks assigned to the user
+    user_tasks = tasks_df[tasks_df["assigned_to"] == username]
+    task_list = user_tasks["title"].tolist()
+    
+    # Find existing record for today
+    user_entry = timesheet_df[(timesheet_df["employee"] == username) & (timesheet_df["date"] == today_date)]
+    login_time = user_entry["login_time"].values[0] if not user_entry.empty else None
+    logout_time = user_entry["logout_time"].values[0] if not user_entry.empty else None
+    hours_worked = user_entry["hours_worked"].values[0] if not user_entry.empty else None
+    
+    st.subheader(f"Timesheet for {today_date}")
+    
+    # Login button
+    if login_time is None:
+        if st.button("Login"):
+            login_time = datetime.now().strftime("%H:%M:%S")
+            new_entry = pd.DataFrame({
+                "timesheet_id": [timesheet_id],
+                "employee": [username],
+                "date": [today_date],
+                "login_time": [login_time],
+                "logout_time": [None],
+                "tasks": [""],
+                "task_notes": [""],
+                "hours_worked": [None]
+            })
+            timesheet_df = pd.concat([timesheet_df, new_entry], ignore_index=True)
+            save_timesheet_data(timesheet_df)
+            st.experimental_rerun()
+    elif pd.isna(logout_time):
+        st.success(f"Logged in at: {login_time}")
         
-        submitted = st.form_submit_button("Log Time")
+        # Multi-task selection
+        selected_tasks = st.multiselect("Select Tasks", task_list)
+        task_notes = st.text_area("Add Notes for Selected Tasks")
         
-        if submitted:
-            if hours_worked > 0:
-                new_entry = pd.DataFrame({
-                    'timesheet_id': [str(uuid.uuid4())],
-                    'employee': [st.session_state.username],
-                    'date': [date.strftime("%Y-%m-%d")],
-                    'hours_worked': [hours_worked],
-                    'task_id': [task_id],
-                    'description': [description]
-                })
-                
-                timesheets_df = pd.concat([timesheets_df, new_entry], ignore_index=True)
-                timesheets_df.to_csv("data/timesheets.csv", index=False)
-                st.success("Time logged successfully!")
-                st.experimental_rerun()
-            else:
-                st.error("Please enter valid hours worked")
-
-    # Timesheet history
-    st.subheader("My Timesheet History")
-    user_timesheets = timesheets_df[timesheets_df['employee'] == st.session_state.username]
-    
-    if not user_timesheets.empty:
-        user_timesheets = user_timesheets.sort_values('date', ascending=False)
-        for _, entry in user_timesheets.iterrows():
-            with st.expander(f"Date: {entry['date']} ({entry['hours_worked']} hours)"):
-                task_title = user_tasks[user_tasks['task_id'] == entry['task_id']]['title'].iloc[0]
-                st.write(f"Task: {task_title}")
-                st.write(f"Description: {entry['description']}")
-                
-                if st.button(f"Delete Entry #{entry['timesheet_id']}"):
-                    timesheets_df = timesheets_df[timesheets_df['timesheet_id'] != entry['timesheet_id']]
-                    timesheets_df.to_csv("data/timesheets.csv", index=False)
-                    st.success("Entry deleted!")
-                    st.experimental_rerun()
-
-if __name__ == "__main__":
-    if st.session_state.get('authenticated'):
-        load_timesheet()
+        if st.button("Update Progress"):
+            timesheet_df.loc[(timesheet_df["employee"] == username) & (timesheet_df["date"] == today_date), "tasks"] = ", ".join(selected_tasks)
+            timesheet_df.loc[(timesheet_df["employee"] == username) & (timesheet_df["date"] == today_date), "task_notes"] = task_notes
+            save_timesheet_data(timesheet_df)
+            st.success("Progress updated successfully!")
+            st.experimental_rerun()
+        
+        if st.button("Logout"):
+            logout_time = datetime.now().strftime("%H:%M:%S")
+            login_dt = datetime.strptime(login_time, "%H:%M:%S")
+            logout_dt = datetime.strptime(logout_time, "%H:%M:%S")
+            hours_worked = round((logout_dt - login_dt).total_seconds() / 3600, 2)
+            timesheet_df.loc[(timesheet_df["employee"] == username) & (timesheet_df["date"] == today_date), "logout_time"] = logout_time
+            timesheet_df.loc[(timesheet_df["employee"] == username) & (timesheet_df["date"] == today_date), "hours_worked"] = hours_worked
+            save_timesheet_data(timesheet_df)
+            st.experimental_rerun()
     else:
-        st.error("Please login to access timesheet management.")
+        st.success(f"Logged out at: {logout_time}. Total hours worked: {hours_worked}. You cannot log in or log out again today.")
+    
+    # Display timesheet history
+    st.subheader("My Timesheet History")
+    user_timesheets = timesheet_df[timesheet_df["employee"] == username]
+    if not user_timesheets.empty:
+        st.dataframe(user_timesheets.sort_values("date", ascending=False))
+
+# Run the app
+if __name__ == "__main__":
+    if st.session_state.get("authenticated"):
+        timesheet_app()
+    else:
+        st.error("Please login to access the timesheet.")

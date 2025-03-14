@@ -25,11 +25,11 @@ def load_task_management():
     if not tasks_view.empty:
         for _, task in tasks_view.iterrows():
             with st.expander(f"Task: {task['title']}"):
-                st.write(f"**Task Title:** {task['title']}")
-                st.write(f"**Description:** {task['description']}")
-                st.write(f"**Assigned to:** {task['assigned_to']}")
-                st.write(f"**Deadline:** {task['deadline']}")
-                st.write(f"**Severity:** {task['severity']}")
+                st.write(f"*Task Title:* {task['title']}")
+                st.write(f"*Description:* {task['description']}")
+                st.write(f"*Assigned to:* {task['assigned_to']}")
+                st.write(f"*Deadline:* {task['deadline']}")
+                st.write(f"*Severity:* {task['severity']}")
 
                 # Status selection
                 status_options = ["Not Started", "In Progress", "Completed"]
@@ -42,8 +42,8 @@ def load_task_management():
                     st.success("Task status updated!")
                     st.rerun()
 
-                st.write(f"**Current Status:** {selected_status}")
-                st.write(f"**Created by:** {task['created_by']}")
+                st.write(f"*Current Status:* {selected_status}")
+                st.write(f"*Created by:* {task['created_by']}")
 
                 if st.session_state.user_role == 'admin':
                     if st.button(f"Delete Task #{task['task_id']}"):
@@ -90,7 +90,7 @@ def load_task_management():
             else:
                 st.error("Please fill all required fields")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     if st.session_state.get('authenticated'):
         load_task_management()
     else:
