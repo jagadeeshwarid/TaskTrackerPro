@@ -7,3 +7,5 @@ task_id,title,description,assigned_to,deadline,severity,status,created_by,approv
 531a81a6-1e06-493e-8a0a-a66013534df1,rajesh1,"go to rjesh 
 ",Roshan,2025-03-19,Low,Not Started,admin,True
 c1f0d73a-0b2f-4c73-a0d1-8b2aceb44543,Creating admin page,On work ,Nas,2025-03-10,Low,Completed,Roshan,False
+e7a637dd-ad3a-47c8-9096-9c32fa636629,Create a dashbaord,Do it now,Roshan,2025-03-14,Medium,Completed,admin,True
+b8fc414b-ac29-432a-9f89-637f15a3d622,Check learners,Saideva learner,Roshan,2025-03-14,High,Not Started,admin,True

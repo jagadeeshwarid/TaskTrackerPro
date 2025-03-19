@@ -2,55 +2,32 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import uuid
+import plotly.express as px
 
 def load_task_management():
     st.title("Task Management")
 
     # Load data
-    tasks_df = pd.read_csv("data/tasks.csv")
-    users_df = pd.read_csv("data/users.csv")
+    try:
+        tasks_df = pd.read_csv("data/tasks.csv")
+        users_df = pd.read_csv("data/users.csv")
+    except FileNotFoundError:
+        st.error("Data files not found. Please ensure 'tasks.csv' and 'users.csv' are in the 'data' directory.")
+        return
+
     employees = users_df[users_df['role'] == 'employee']['username'].tolist()
     admins = users_df[users_df['role'] == 'admin']['username'].tolist()
 
-    # Task list
-    st.subheader("Task List")
-    if st.session_state.user_role == 'admin':
-        tasks_view = tasks_df
-    else:
-        tasks_view = tasks_df[
-            (tasks_df['assigned_to'] == st.session_state.username) |
-            (tasks_df['created_by'] == st.session_state.username)
-        ]
-
-    if not tasks_view.empty:
-        for _, task in tasks_view.iterrows():
-            with st.expander(f"Task: {task['title']}"):
-                st.write(f"*Task Title:* {task['title']}")
-                st.write(f"*Description:* {task['description']}")
-                st.write(f"*Assigned to:* {task['assigned_to']}")
-                st.write(f"*Deadline:* {task['deadline']}")
-                st.write(f"*Severity:* {task['severity']}")
-
-                # Status selection
-                status_options = ["Not Started", "In Progress", "Completed"]
-                current_status = task['status']
-                selected_status = st.selectbox(f"Status of Task #{task['task_id']}", options=status_options, index=status_options.index(current_status))
-
-                if st.button(f"Update Status of Task #{task['task_id']}"):
-                    tasks_df.loc[tasks_df['task_id'] == task['task_id'], 'status'] = selected_status
-                    tasks_df.to_csv("data/tasks.csv", index=False)
-                    st.success("Task status updated!")
-                    st.rerun()
-
-                st.write(f"*Current Status:* {selected_status}")
-                st.write(f"*Created by:* {task['created_by']}")
-
-                if st.session_state.user_role == 'admin':
-                    if st.button(f"Delete Task #{task['task_id']}"):
-                        tasks_df = tasks_df[tasks_df['task_id'] != task['task_id']]
-                        tasks_df.to_csv("data/tasks.csv", index=False)
-                        st.success("Task deleted!")
-                        st.rerun()
+    # Task status distribution
+    st.subheader("Task Overview")
+    if not tasks_df.empty:
+        status_counts = tasks_df['status'].value_counts()
+        fig = px.pie(values=status_counts.values, 
+                    names=status_counts.index, 
+                    title="Task Status",
+                    color_discrete_sequence=px.colors.sequential.Blues)
+        fig.update_layout(height=400, width=600)
+        st.plotly_chart(fig)
 
     # Task creation form
     st.subheader("Create New Task")
@@ -86,11 +63,51 @@ def load_task_management():
                 tasks_df = pd.concat([tasks_df, new_task], ignore_index=True)
                 tasks_df.to_csv("data/tasks.csv", index=False)
                 st.success("Task created successfully!")
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Please fill all required fields")
 
-if _name_ == "_main_":
+    # Task list
+    st.subheader("Task List")
+    if st.session_state.user_role == 'admin':
+        tasks_view = tasks_df
+    else:
+        tasks_view = tasks_df[
+            (tasks_df['assigned_to'] == st.session_state.username) |
+            (tasks_df['created_by'] == st.session_state.username)
+        ]
+
+    if not tasks_view.empty:
+        for _, task in tasks_view.iterrows():
+            with st.expander(f"Task: {task['title']}"):
+                st.write(f"*Task Title:* {task['title']}")
+                st.write(f"*Description:* {task['description']}")
+                st.write(f"*Assigned to:* {task['assigned_to']}")
+                st.write(f"*Deadline:* {task['deadline']}")
+                st.write(f"*Severity:* {task['severity']}")
+
+                # Status selection
+                status_options = ["Not Started", "In Progress", "Completed"]
+                current_status = task['status']
+                selected_status = st.selectbox(f"Status of Task #{task['task_id']}", options=status_options, index=status_options.index(current_status), key=f"status_{task['task_id']}")
+
+                if st.button(f"Update Status of Task #{task['task_id']}", key=f"update_{task['task_id']}"):
+                    tasks_df.loc[tasks_df['task_id'] == task['task_id'], 'status'] = selected_status
+                    tasks_df.to_csv("data/tasks.csv", index=False)
+                    st.success("Task status updated!")
+                    st.experimental_rerun()
+
+                st.write(f"*Current Status:* {selected_status}")
+                st.write(f"*Created by:* {task['created_by']}")
+
+                if st.session_state.user_role == 'admin':
+                    if st.button(f"Delete Task #{task['task_id']}", key=f"delete_{task['task_id']}"):
+                        tasks_df = tasks_df[tasks_df['task_id'] != task['task_id']]
+                        tasks_df.to_csv("data/tasks.csv", index=False)
+                        st.success("Task deleted!")
+                        st.experimental_rerun()
+
+if __name__ == "__main__":
     if st.session_state.get('authenticated'):
         load_task_management()
     else:
